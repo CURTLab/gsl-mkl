@@ -588,6 +588,7 @@ endforeach()
 option(GSL_DISABLE_TESTS "Disable test cases" False)
 option(MKL_USE_parallel "Use MKL parallel" True)
 option(MKL_USE_sdl "Single Dynamic Library or static/dynamic" False)
+set(MKL_USE_interface "lp64" CACHE STRING "for Intel(R)64 compatible arch: ilp64/lp64 or for ia32 arch: cdecl/stdcall")
 
 set(CMAKE_DEBUG_POSTFIX d)
 find_package(MKL REQUIRED)
