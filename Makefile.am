@@ -2,9 +2,9 @@
 
 # AUTOMAKE_OPTIONS = readme-alpha
 
-SUBDIRS = gsl utils sys test err const complex cheb block vector matrix permutation combination multiset sort ieee-utils blas linalg eigen specfunc dht qrng rng randist fft poly fit multifit multifit_nlinear multilarge multilarge_nlinear filter movstat rstat statistics siman sum integration interpolation histogram ode-initval ode-initval2 roots multiroots min multimin monte ntuple diff deriv cdf wavelet bspline spblas spmatrix splinalg doc
+SUBDIRS = gsl utils sys test err bst const complex cheb block vector matrix permutation combination multiset sort ieee-utils blas linalg eigen specfunc dht qrng rng randist fft poly fit multifit multifit_nlinear multilarge multilarge_nlinear filter movstat rstat statistics siman sum integration interpolation histogram ode-initval ode-initval2 roots multiroots min multimin monte ntuple diff deriv cdf wavelet bspline spblas spmatrix splinalg doc
 
-SUBLIBS = block/libgslblock.la blas/libgslblas.la bspline/libgslbspline.la complex/libgslcomplex.la cheb/libgslcheb.la dht/libgsldht.la diff/libgsldiff.la deriv/libgslderiv.la eigen/libgsleigen.la err/libgslerr.la fft/libgslfft.la filter/libgslfilter.la fit/libgslfit.la histogram/libgslhistogram.la ieee-utils/libgslieeeutils.la integration/libgslintegration.la interpolation/libgslinterpolation.la linalg/libgsllinalg.la matrix/libgslmatrix.la min/libgslmin.la monte/libgslmonte.la multifit/libgslmultifit.la multifit_nlinear/libgslmultifit_nlinear.la multilarge/libgslmultilarge.la multilarge_nlinear/libgslmultilarge_nlinear.la multimin/libgslmultimin.la multiroots/libgslmultiroots.la ntuple/libgslntuple.la ode-initval/libgslodeiv.la ode-initval2/libgslodeiv2.la permutation/libgslpermutation.la combination/libgslcombination.la multiset/libgslmultiset.la poly/libgslpoly.la qrng/libgslqrng.la randist/libgslrandist.la rng/libgslrng.la roots/libgslroots.la siman/libgslsiman.la sort/libgslsort.la specfunc/libgslspecfunc.la movstat/libgslmovstat.la rstat/libgslrstat.la statistics/libgslstatistics.la sum/libgslsum.la sys/libgslsys.la test/libgsltest.la utils/libutils.la vector/libgslvector.la cdf/libgslcdf.la wavelet/libgslwavelet.la spmatrix/libgslspmatrix.la spblas/libgslspblas.la splinalg/libgslsplinalg.la
+SUBLIBS = block/libgslblock.la blas/libgslblas.la bspline/libgslbspline.la bst/libgslbst.la complex/libgslcomplex.la cheb/libgslcheb.la dht/libgsldht.la diff/libgsldiff.la deriv/libgslderiv.la eigen/libgsleigen.la err/libgslerr.la fft/libgslfft.la filter/libgslfilter.la fit/libgslfit.la histogram/libgslhistogram.la ieee-utils/libgslieeeutils.la integration/libgslintegration.la interpolation/libgslinterpolation.la linalg/libgsllinalg.la matrix/libgslmatrix.la min/libgslmin.la monte/libgslmonte.la multifit/libgslmultifit.la multifit_nlinear/libgslmultifit_nlinear.la multilarge/libgslmultilarge.la multilarge_nlinear/libgslmultilarge_nlinear.la multimin/libgslmultimin.la multiroots/libgslmultiroots.la ntuple/libgslntuple.la ode-initval/libgslodeiv.la ode-initval2/libgslodeiv2.la permutation/libgslpermutation.la combination/libgslcombination.la multiset/libgslmultiset.la poly/libgslpoly.la qrng/libgslqrng.la randist/libgslrandist.la rng/libgslrng.la roots/libgslroots.la siman/libgslsiman.la sort/libgslsort.la specfunc/libgslspecfunc.la movstat/libgslmovstat.la rstat/libgslrstat.la statistics/libgslstatistics.la sum/libgslsum.la sys/libgslsys.la test/libgsltest.la utils/libutils.la vector/libgslvector.la cdf/libgslcdf.la wavelet/libgslwavelet.la spmatrix/libgslspmatrix.la spblas/libgslspblas.la splinalg/libgslsplinalg.la
 
 pkginclude_HEADERS = gsl_math.h gsl_pow_int.h gsl_nan.h gsl_machine.h gsl_mode.h gsl_precision.h gsl_types.h gsl_version.h gsl_minmax.h gsl_inline.h
 
@@ -29,10 +29,10 @@ m4data_DATA = gsl.m4
 bin_PROGRAMS = gsl-randist gsl-histogram
 
 gsl_randist_SOURCES = gsl-randist.c
-gsl_randist_LDADD = libgsl.la
+gsl_randist_LDADD = libgsl.la cblas/libgslcblas.la
 
 gsl_histogram_SOURCES = gsl-histogram.c
-gsl_histogram_LDADD = libgsl.la
+gsl_histogram_LDADD = libgsl.la cblas/libgslcblas.la
 
 check_SCRIPTS = test_gsl_histogram.sh pkgconfig.test
 TESTS = test_gsl_histogram.sh pkgconfig.test
