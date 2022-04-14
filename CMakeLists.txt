@@ -1,4 +1,4 @@
-# CMake build script for the GNU Scientific Library.
+# CMake build script for the GNU Scientific Library
 
 # Examples:
 # 1. VS 2015, 32-bit static libs (run cmake from the $build_dir)
@@ -8,6 +8,18 @@
 #    ctest [-j <N>] [-VV]
 # 2. VS 2017, 64-bit shared libs and dynamic runtime
 #    cmake -G"Visual Studio 15 2017 Win64" -DGSL_INSTALL_MULTI_CONFIG=ON \
+#          -DBUILD_SHARED_LIBS=ON -DMSVC_RUNTIME_DYNAMIC=ON \
+#          <path to gsl sources>
+#    cmake --build . --config Release [--target gsl|install] [-j 8]
+#    ctest [-j <N>] [-VV]
+# 2. VS 2019, 64-bit shared libs and dynamic runtime
+#    cmake -G"Visual Studio 16 2019" -DGSL_INSTALL_MULTI_CONFIG=ON \
+#          -DBUILD_SHARED_LIBS=ON -DMSVC_RUNTIME_DYNAMIC=ON \
+#          <path to gsl sources>
+#    cmake --build . --config Release [--target gsl|install] [-j 8]
+#    ctest [-j <N>] [-VV]
+# 2. VS 2019, 32-bit shared libs and dynamic runtime
+#    cmake -G"Visual Studio 16 2019" -A Win32 -DGSL_INSTALL_MULTI_CONFIG=ON \
 #          -DBUILD_SHARED_LIBS=ON -DMSVC_RUNTIME_DYNAMIC=ON \
 #          <path to gsl sources>
 #    cmake --build . --config Release [--target gsl|install] [-j 8]
@@ -25,6 +37,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(init)
 
 project(GSL)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (POLICY CMP0054)
   # Only interpret `if` arguments as variables or keywords when unquoted.
@@ -47,6 +61,7 @@ set(PACKAGE_BUGREPORT "")
 set(PACKAGE_URL "")
 set(LT_OBJDIR ".libs/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+
 
 # The following part of config.h is hard to derive from configure.ac.
 string(REGEX MATCHALL "[^\n]*\n" CONFIG
@@ -586,9 +601,7 @@ foreach( lang C CXX )
 endforeach()
 
 set(CMAKE_DEBUG_POSTFIX d)
-
 option(GSL_DISABLE_TESTS "Disable test cases" True)
-
 find_package(MKL CONFIG REQUIRED)
 #message(STATUS "${MKL_IMPORTED_TARGETS}")
 
@@ -601,31 +614,34 @@ function(add_gsl_test exename)
     return()
   endif ()
   add_executable(${exename} ${ARGN})
+  target_link_libraries(${exename} gsl $<LINK_ONLY:MKL::MKL>)
+  target_include_directories(${exename} PRIVATE . PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
   target_compile_options(${exename} PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
-  target_include_directories(${exename} PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
-  target_link_libraries(${exename} PUBLIC $<LINK_ONLY:MKL::MKL>)
   add_test(${exename} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exename})
+  set_property(TARGET ${exename} PROPERTY FOLDER test)
 endfunction()
 
-file(GLOB GSL_HEADER_PATHS "${GSL_SOURCE_DIR}/gsl*.h")
+file(GLOB GSL_HEADER_PATHS_NE "${GSL_SOURCE_DIR}/gsl*.h")
 file(GLOB dirs "${GSL_SOURCE_DIR}/*")
 foreach (dir ${dirs})
   if (NOT (dir MATCHES "gsl$"))
     file(GLOB headers "${dir}/gsl*.h")
-    set(GSL_HEADER_PATHS ${GSL_HEADER_PATHS} ${headers})
+    set(GSL_HEADER_PATHS_NE ${GSL_HEADER_PATHS_NE} ${headers})
   endif ()
 endforeach()
-
-foreach (path ${GSL_HEADER_PATHS})
+set(GSL_HEADER_PATHS "")
+foreach (path ${GSL_HEADER_PATHS_NE})
   get_filename_component(name ${path} NAME)
   set(GSL_HEADERS ${GSL_HEADERS} gsl/${name})
+  string(REPLACE "\ " "\\ " escaped ${path})
+  set(GSL_HEADER_PATHS ${GSL_HEADER_PATHS} ${escaped}) 
 endforeach ()
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/copy-headers.cmake "
   file(MAKE_DIRECTORY gsl)
   foreach (path ${GSL_HEADER_PATHS})
     get_filename_component(filename \${path} NAME)
-    configure_file(\${path} ${GSL_BINARY_DIR}/gsl/\${filename} COPYONLY)
+    configure_file(\${path} \"${GSL_BINARY_DIR}/gsl/\${filename}\" COPYONLY)
   endforeach ()")
 
 add_custom_command(OUTPUT ${GSL_HEADERS}
@@ -648,8 +664,10 @@ foreach (line ${lines})
   string(REGEX MATCHALL "[^ ]+" dirs ${dirs})
 endforeach ()
 
+set(HAVETOBUILD ${dirs} .)
+
 # Extract sources from automake files and add tests.
-foreach (dir "." ${dirs})
+foreach (dir ${HAVETOBUILD})
   file(STRINGS ${dir}/Makefile.am lines)
   foreach (line ${lines})
     if (line MATCHES "_la_SOURCES[ \t]*=")
@@ -657,9 +675,13 @@ foreach (dir "." ${dirs})
       set(GSL_SOURCES ${GSL_SOURCES} ${SOURCES})
     elseif (line MATCHES "^test.*_SOURCES[ \t]*=")
       get_sources(${dir} "${line}" SOURCES)
-      string(REGEX REPLACE "(.*)_SOURCES.*" "\\1" suffix ${line})
+      string(REGEX REPLACE "([^=]*)_SOURCES.*" "\\1" suffix ${line})
+      if (SOURCES MATCHES "\\((.+)_SOURCES\\)")
+          set(SOURCES ${${CMAKE_MATCH_1}})
+      endif()
+      set(${suffix} ${SOURCES})
       add_gsl_test("${dir}_${suffix}" ${SOURCES})
-    endif ()
+     endif ()
   endforeach ()
 endforeach ()
 
@@ -681,16 +703,15 @@ set_target_properties(gsl
   PROPERTIES
     COMPILE_DEFINITIONS DLL_EXPORT
     WINDOWS_EXPORT_ALL_SYMBOLS ON )
+    target_include_directories(gsl PRIVATE .)
+    target_link_libraries(gsl ${CMAKE_REQUIRED_LIBRARIES})
 target_compile_options(gsl PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
 target_include_directories(gsl PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries(gsl PUBLIC $<LINK_ONLY:MKL::MKL>)
 
 target_include_directories(gsl 
-  PUBLIC 
-	$<BUILD_INTERFACE:${GSL_BINARY_DIR}>
-	$<BUILD_INTERFACE:${GSL_SOURCE_DIR}>)
+  PUBLIC $<BUILD_INTERFACE:${GSL_BINARY_DIR}>  )
 add_dependencies(gsl copy-headers)
-
 if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
   if (MSVC AND GSL_INSTALL_MULTI_CONFIG)   
     install(TARGETS gsl
@@ -698,24 +719,28 @@ if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
       CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES}
       LIBRARY DESTINATION lib/$<CONFIG>
       RUNTIME DESTINATION bin/$<CONFIG>
-      ARCHIVE DESTINATION lib/$<CONFIG>)
+      ARCHIVE DESTINATION lib/$<CONFIG>
+      COMPONENT gsl)
     # For Debug under VS, also install the pdb files.
     install(
       FILES 
         ${PROJECT_BINARY_DIR}/bin/Debug/gsl.pdb
       CONFIGURATIONS Debug 
-      DESTINATION bin/$<CONFIG>)
+      DESTINATION bin/$<CONFIG>
+      COMPONENT gsl)
   else ()
-    install(TARGETS gsl
+    set(TOINSTALL gsl)
+    install(TARGETS ${TOINSTALL}
       EXPORT "gsl-targets"
       LIBRARY DESTINATION lib
       RUNTIME DESTINATION bin
-      ARCHIVE DESTINATION lib)
+      ARCHIVE DESTINATION lib
+      COMPONENT gsl)
   endif ()
-  install(FILES ${GSL_HEADER_PATHS} DESTINATION include/gsl)
+  install(FILES ${GSL_HEADER_PATHS} DESTINATION include/gsl COMPONENT gsl)
   set(PC_FILE ${CMAKE_BINARY_DIR}/gsl.pc)
   configure_file("gsl.pc.cmake" ${PC_FILE} @ONLY)
-  install(FILES ${PC_FILE} DESTINATION lib/pkgconfig)
+  install(FILES ${PC_FILE} DESTINATION lib/pkgconfig COMPONENT gsl)
 
   # Read config file and replace placeholders.
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/gsl-config.in" GSL_CONFIG_FILE)
@@ -737,16 +762,17 @@ if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
   file(WRITE ${CMAKE_BINARY_DIR}/gsl-config ${GSL_CONFIG_FILE})
 
   # Install gsl-config
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/gsl-config DESTINATION bin)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/gsl-config DESTINATION bin COMPONENT gsl)
   
   # Create cmake files that can be used to import GSL into another project. 
   include(CMakePackageConfigHelpers)
   install( 
     EXPORT gsl-targets
     DESTINATION lib/cmake/${PACKAGE_NAME}-${PACKAGE_VERSION}
-    NAMESPACE GSL:: )
+    NAMESPACE GSL:: 
+    COMPONENT gsl)
   configure_package_config_file(
-    ${CMAKE_SOURCE_DIR}/cmake/${PACKAGE_NAME}-config.cmake.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PACKAGE_NAME}-config.cmake.in
     ${CMAKE_BINARY_DIR}/cmake/${PACKAGE_NAME}-config.cmake
     INSTALL_DESTINATION cmake/${PACKAGE_NAME} )
   write_basic_package_version_file(
@@ -758,6 +784,9 @@ if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
       ${CMAKE_BINARY_DIR}/cmake/${PACKAGE_NAME}-config.cmake
       ${CMAKE_BINARY_DIR}/cmake/${PACKAGE_NAME}-config-version.cmake
     DESTINATION 
-      lib/cmake/${PACKAGE_NAME}-${PACKAGE_VERSION} )
-
+      lib/cmake/${PACKAGE_NAME}-${PACKAGE_VERSION} 
+    COMPONENT gsl)
 endif ()
+if(NOT MSVC)
+    target_compile_options(gsl PRIVATE -fPIC)
+endif()
