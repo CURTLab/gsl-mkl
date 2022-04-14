@@ -1,5 +1,7 @@
 CMakeFiles
-
+out/
+.vs/
 build-*/
 gsl.def
 *.nupkg
+CMakeSettings.json

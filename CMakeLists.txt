@@ -585,13 +585,12 @@ foreach( lang C CXX )
   endif()
 endforeach()
 
-option(GSL_DISABLE_TESTS "Disable test cases" False)
-option(MKL_USE_parallel "Use MKL parallel" True)
-option(MKL_USE_sdl "Single Dynamic Library or static/dynamic" False)
-set(MKL_USE_interface "lp64" CACHE STRING "for Intel(R)64 compatible arch: ilp64/lp64 or for ia32 arch: cdecl/stdcall")
-
 set(CMAKE_DEBUG_POSTFIX d)
-find_package(MKL REQUIRED)
+
+option(GSL_DISABLE_TESTS "Disable test cases" True)
+
+find_package(MKL CONFIG REQUIRED)
+#message(STATUS "${MKL_IMPORTED_TARGETS}")
 
 enable_testing()
 
@@ -601,10 +600,10 @@ function(add_gsl_test exename)
   if (GSL_DISABLE_TESTS)
     return()
   endif ()
-  link_directories(${exename} ${MKL_LIBRARY_DIR})
   add_executable(${exename} ${ARGN})
-  include_directories(${exename} ${MKL_INCLUDE_DIR})
-  target_link_libraries(${exename} gsl ${MKL_LIBRARIES})
+  target_compile_options(${exename} PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
+  target_include_directories(${exename} PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_link_libraries(${exename} PUBLIC $<LINK_ONLY:MKL::MKL>)
   add_test(${exename} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exename})
 endfunction()
 
@@ -682,13 +681,14 @@ set_target_properties(gsl
   PROPERTIES
     COMPILE_DEFINITIONS DLL_EXPORT
     WINDOWS_EXPORT_ALL_SYMBOLS ON )
-target_link_libraries(gsl PRIVATE ${MKL_LIBRARIES})
+target_compile_options(gsl PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
+target_include_directories(gsl PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(gsl PUBLIC $<LINK_ONLY:MKL::MKL>)
+
 target_include_directories(gsl 
   PUBLIC 
 	$<BUILD_INTERFACE:${GSL_BINARY_DIR}>
-	$<BUILD_INTERFACE:${GSL_SOURCE_DIR}>
-  PRIVATE
-	${MKL_INCLUDE_DIR})
+	$<BUILD_INTERFACE:${GSL_SOURCE_DIR}>)
 add_dependencies(gsl copy-headers)
 
 if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
