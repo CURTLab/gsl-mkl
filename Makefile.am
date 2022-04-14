@@ -29,10 +29,10 @@ m4data_DATA = gsl.m4
 bin_PROGRAMS = gsl-randist gsl-histogram
 
 gsl_randist_SOURCES = gsl-randist.c
-gsl_randist_LDADD = libgsl.la cblas/libgslcblas.la
+gsl_randist_LDADD = libgsl.la
 
 gsl_histogram_SOURCES = gsl-histogram.c
-gsl_histogram_LDADD = libgsl.la cblas/libgslcblas.la
+gsl_histogram_LDADD = libgsl.la
 
 check_SCRIPTS = test_gsl_histogram.sh pkgconfig.test
 TESTS = test_gsl_histogram.sh pkgconfig.test

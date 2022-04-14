@@ -603,7 +603,7 @@ function(add_gsl_test exename)
   endif ()
   link_directories(${exename} ${MKL_LIBRARY_DIR})
   add_executable(${exename} ${ARGN})
-  include_directories(${exename} ${MKL_INCLUDE_DIR})
+  include_directories(${exename} ${MKL_INCLUDE_DIR} ${MKL_H})
   target_link_libraries(${exename} gsl ${MKL_LIBRARIES})
   add_test(${exename} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exename})
 endfunction()
@@ -688,7 +688,7 @@ target_include_directories(gsl
 	$<BUILD_INTERFACE:${GSL_BINARY_DIR}>
 	$<BUILD_INTERFACE:${GSL_SOURCE_DIR}>
   PRIVATE
-	${MKL_INCLUDE_DIR})
+	${MKL_INCLUDE_DIR} ${MKL_H})
 add_dependencies(gsl copy-headers)
 
 if (GSL_INSTALL OR NOT DEFINED GSL_INSTALL)
